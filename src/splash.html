@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>CPN IDE</title>
@@ -41,12 +41,12 @@
     <h1>CPN IDE</h1>
     <div class="sub">Coloured Petri Nets – Editor &amp; Simulator</div>
     <div class="spinner"></div>
-    <div id="status">Wird gestartet …</div>
+    <div id="status">Starting …</div>
     <div id="error"></div>
     <div class="buttons">
-      <button id="install" style="display:none">Docker Desktop herunterladen</button>
-      <button id="log">Log anzeigen</button>
-      <button id="retry" class="primary">Erneut versuchen</button>
+      <button id="install" style="display:none">Download Docker Desktop</button>
+      <button id="log">Show Log</button>
+      <button id="retry" class="primary">Try Again</button>
     </div>
   </div>
   <script>
@@ -61,7 +61,7 @@
       errorEl.textContent = text;
       install.style.display = action === 'install-docker' ? '' : 'none';
     });
-    document.getElementById('retry').onclick = () => { box.classList.remove('failed'); statusEl.textContent = 'Erneuter Versuch …'; window.cpnSplash.retry(); };
+    document.getElementById('retry').onclick = () => { box.classList.remove('failed'); statusEl.textContent = 'Retrying …'; window.cpnSplash.retry(); };
     document.getElementById('log').onclick = () => window.cpnSplash.showLog();
     install.onclick = () => window.cpnSplash.installDocker();
   </script>

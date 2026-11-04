@@ -101,11 +101,11 @@ class BackendError extends Error {
 
 async function ensureDaemon(status) {
   if (!findDocker()) {
-    throw new BackendError('Docker wurde nicht gefunden. Der CPN-Simulator läuft auf dem Mac nur in Docker. Bitte Docker Desktop installieren und die App neu starten.', 'install-docker');
+    throw new BackendError('Docker was not found. On macOS the CPN simulator only runs in Docker. Please install Docker Desktop and restart the app.', 'install-docker');
   }
   let info = await docker(['info', '--format', '{{.ServerVersion}}'], { timeout: 20000 });
   if (info.code === 0) return;
-  status('Docker Desktop wird gestartet …');
+  status('Starting Docker Desktop …');
   if (fs.existsSync('/Applications/Docker.app')) execFile('/usr/bin/open', ['-g', '-a', 'Docker']);
   else if (fs.existsSync('/Applications/OrbStack.app')) execFile('/usr/bin/open', ['-g', '-a', 'OrbStack']);
   for (let i = 0; i < 90; i++) {
@@ -113,7 +113,7 @@ async function ensureDaemon(status) {
     info = await docker(['info', '--format', '{{.ServerVersion}}'], { timeout: 10000 });
     if (info.code === 0) return;
   }
-  throw new BackendError('Docker läuft nicht. Bitte Docker Desktop starten und auf „Erneut versuchen" klicken.', 'retry');
+  throw new BackendError('Docker is not running. Please start Docker Desktop and click "Try again".', 'retry');
 }
 
 let pulling = null;
@@ -134,10 +134,10 @@ async function ensureImage(status) {
           for (const ws of workspaces.values()) ws.status(`Download: ${l}`);
         },
       });
-      if (pull.code !== 0) throw new BackendError(`Das Backend-Image konnte nicht geladen werden:\n${pull.stderr.slice(-500)}`, 'retry');
+      if (pull.code !== 0) throw new BackendError(`Could not download the backend image:\n${pull.stderr.slice(-500)}`, 'retry');
     })().finally(() => { pulling = null; });
   }
-  status('CPN-Backend wird heruntergeladen (einmalig, ca. 400 MB) …');
+  status('Downloading the CPN backend (once, about 400 MB) …');
   await pulling;
 }
 
@@ -253,21 +253,21 @@ class Workspace {
   async startBackend() {
     this.ready = false;
     const status = (t) => this.status(t);
-    status('Docker wird geprüft …');
+    status('Checking Docker …');
     await ensureDaemon(status);
 
     const reuse = await this.existingPort();
     if (reuse && await httpUp(reuse)) {
       this.port = reuse;
       this.ready = true;
-      status(`Laufendes Backend auf Port ${reuse} gefunden.`);
+      status(`Found a running backend on port ${reuse}.`);
       return;
     }
 
     await ensureImage(status);
     await docker(['rm', '-f', this.container], { timeout: 30000 });
     this.port = await freePort();
-    status('CPN-Backend wird gestartet …');
+    status('Starting the CPN backend …');
     // tmpfs: the emulated 32-bit simulator cannot list directories on ext4 (64-bit readdir offsets),
     // which makes "setting model paths" fail with SysErr.
     const run = await docker([
@@ -276,7 +276,7 @@ class Workspace {
       '--tmpfs', '/data:rw,exec,mode=1777', '--tmpfs', '/tmp:rw,exec,mode=1777',
       '-p', `127.0.0.1:${this.port}:8080`, IMAGE,
     ], { timeout: 120000 });
-    if (run.code !== 0) throw new BackendError(`Der Backend-Container startet nicht:\n${run.stderr.slice(-500)}`, 'retry');
+    if (run.code !== 0) throw new BackendError(`The backend container does not start:\n${run.stderr.slice(-500)}`, 'retry');
     log(`[${this.slot}] container ${this.container} (${run.stdout.slice(0, 12)}) on port ${this.port}`);
 
     const t0 = Date.now();
@@ -284,17 +284,17 @@ class Workspace {
       if (!this.alive()) return;
       if (await httpUp(this.port)) {
         this.ready = true;
-        status(`Backend bereit (${Math.round((Date.now() - t0) / 1000)} s).`);
+        status(`Backend ready (${Math.round((Date.now() - t0) / 1000)} s).`);
         return;
       }
       const alive = await docker(['inspect', '-f', '{{.State.Running}}', this.container], { timeout: 15000 });
       if (alive.code !== 0 || alive.stdout !== 'true') {
-        throw new BackendError('Der Backend-Container wurde unerwartet beendet.', 'retry');
+        throw new BackendError('The backend container stopped unexpectedly.', 'retry');
       }
-      status(`CPN-Backend wird gestartet … ${Math.round((Date.now() - t0) / 1000)} s`);
+      status(`Starting the CPN backend … ${Math.round((Date.now() - t0) / 1000)} s`);
       await sleep(1500);
     }
-    throw new BackendError('Das Backend hat nicht rechtzeitig geantwortet.', 'retry');
+    throw new BackendError('The backend did not respond in time.', 'retry');
   }
 
   stopBackend() {
@@ -342,11 +342,11 @@ class Workspace {
       if (this.closeConfirmed || !this.unsaved) return;
       const choice = dialog.showMessageBoxSync(win, {
         type: 'question',
-        buttons: ['Speichern', 'Abbrechen', 'Nicht speichern'],
+        buttons: ['Save', 'Cancel', "Don't Save"],
         defaultId: 0,
         cancelId: 1,
-        message: `Änderungen an „${this.currentFile ? path.basename(this.currentFile) : 'Modell'}" speichern?`,
-        detail: 'Ungespeicherte Änderungen gehen sonst verloren.',
+        message: `Save changes to "${this.currentFile ? path.basename(this.currentFile) : 'model'}"?`,
+        detail: 'Your changes will be lost if you don\'t save them.',
       });
       if (choice === 2) { this.closeConfirmed = true; return; }
       e.preventDefault();
@@ -402,7 +402,7 @@ ipcMain.handle('cpn:open-dialog', async (e, options) => {
 ipcMain.handle('cpn:save-dialog', async (e, options) => {
   const ws = wsFor(e.sender);
   const r = await dialog.showSaveDialog(ws ? ws.win : undefined, {
-    title: 'Speichern unter',
+    title: 'Save As',
     defaultPath: (options && options.defaultPath) || (ws && ws.currentFile ? path.basename(ws.currentFile) : 'model.cpn'),
     filters: (options && options.filters) || [{ name: 'CPN models', extensions: ['cpn', 'CPN'] }],
   });
@@ -458,7 +458,7 @@ ipcMain.on('app.init.complete', (e) => {
 });
 
 function showLog(ws) {
-  const w = new BrowserWindow({ width: 900, height: 600, title: 'Backend-Log', parent: ws ? ws.win : undefined });
+  const w = new BrowserWindow({ width: 900, height: 600, title: 'Backend Log', parent: ws ? ws.win : undefined });
   const html = `<pre style="font:12px Menlo,monospace;white-space:pre-wrap;padding:8px">${
     logLines.join('\n').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pre>`;
   w.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
@@ -481,78 +481,78 @@ function buildMenu() {
     {
       label: app.name,
       submenu: [
-        { role: 'about', label: 'Über CPN IDE' },
+        { role: 'about', label: 'About CPN IDE' },
         { type: 'separator' },
         { role: 'services' },
         { type: 'separator' },
         { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' },
         { type: 'separator' },
-        { role: 'quit', label: 'CPN IDE beenden' },
+        { role: 'quit', label: 'Quit CPN IDE' },
       ],
     },
     {
-      label: 'Ablage',
+      label: 'File',
       submenu: [
-        { label: 'Neues Fenster', accelerator: 'CmdOrCtrl+Shift+N', click: () => newWindow() },
-        { label: 'Neues Modell', accelerator: 'CmdOrCtrl+N', click: menuSend('main.menu.new.project') },
-        { label: 'Öffnen …', accelerator: 'CmdOrCtrl+O', click: menuSend('main.menu.open.project') },
-        { label: 'In neuem Fenster öffnen …', accelerator: 'CmdOrCtrl+Shift+O', click: openInNewWindow },
-        { role: 'recentDocuments', label: 'Zuletzt geöffnet', submenu: [{ role: 'clearRecentDocuments', label: 'Liste löschen' }] },
+        { label: 'New Window', accelerator: 'CmdOrCtrl+Shift+N', click: () => newWindow() },
+        { label: 'New Model', accelerator: 'CmdOrCtrl+N', click: menuSend('main.menu.new.project') },
+        { label: 'Open …', accelerator: 'CmdOrCtrl+O', click: menuSend('main.menu.open.project') },
+        { label: 'Open in New Window …', accelerator: 'CmdOrCtrl+Shift+O', click: openInNewWindow },
+        { role: 'recentDocuments', label: 'Open Recent', submenu: [{ role: 'clearRecentDocuments', label: 'Clear Menu' }] },
         { type: 'separator' },
-        { label: 'Speichern', accelerator: 'CmdOrCtrl+S', click: menuSend('main.menu.save.project') },
-        { label: 'Speichern unter …', accelerator: 'CmdOrCtrl+Shift+S', click: menuSend('main.menu.saveas.project') },
+        { label: 'Save', accelerator: 'CmdOrCtrl+S', click: menuSend('main.menu.save.project') },
+        { label: 'Save As …', accelerator: 'CmdOrCtrl+Shift+S', click: menuSend('main.menu.saveas.project') },
         { type: 'separator' },
-        { role: 'close', label: 'Fenster schließen' },
+        { role: 'close', label: 'Close Window' },
       ],
     },
     {
-      label: 'Bearbeiten',
+      label: 'Edit',
       submenu: [
-        { label: 'Widerrufen', accelerator: 'CmdOrCtrl+Z', click: edit('undo') },
-        { label: 'Wiederholen', accelerator: 'CmdOrCtrl+Shift+Z', click: edit('redo') },
+        { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: edit('undo') },
+        { label: 'Redo', accelerator: 'CmdOrCtrl+Shift+Z', click: edit('redo') },
         { type: 'separator' },
-        { role: 'cut', label: 'Ausschneiden' },
-        { role: 'copy', label: 'Kopieren' },
-        { role: 'paste', label: 'Einsetzen' },
-        { role: 'selectAll', label: 'Alles auswählen' },
+        { role: 'cut', label: 'Cut' },
+        { role: 'copy', label: 'Copy' },
+        { role: 'paste', label: 'Paste' },
+        { role: 'selectAll', label: 'Select All' },
       ],
     },
     {
-      label: 'Darstellung',
+      label: 'View',
       submenu: [
-        { role: 'resetZoom', label: 'Originalgröße' },
-        { role: 'zoomIn', label: 'Vergrößern' },
-        { role: 'zoomOut', label: 'Verkleinern' },
+        { role: 'resetZoom', label: 'Actual Size' },
+        { role: 'zoomIn', label: 'Zoom In' },
+        { role: 'zoomOut', label: 'Zoom Out' },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: 'Vollbild' },
+        { role: 'togglefullscreen', label: 'Toggle Full Screen' },
         { type: 'separator' },
         {
-          label: 'Oberfläche neu laden',
+          label: 'Reload Interface',
           accelerator: 'CmdOrCtrl+Shift+R',
           click: (_i, win) => { const ws = focusedWs(win); if (ws && ws.ready) ws.win.loadFile(UI_INDEX); },
         },
-        { role: 'toggleDevTools', label: 'Entwicklertools' },
+        { role: 'toggleDevTools', label: 'Developer Tools' },
       ],
     },
     {
       label: 'Simulator',
       submenu: [
-        { label: 'Backend neu starten', click: (_i, win) => { const ws = focusedWs(win); if (ws) ws.restartBackend(); } },
-        { label: 'Backend-Log anzeigen', click: (_i, win) => showContainerLog(focusedWs(win)) },
+        { label: 'Restart Backend', click: (_i, win) => { const ws = focusedWs(win); if (ws) ws.restartBackend(); } },
+        { label: 'Show Backend Log', click: (_i, win) => showContainerLog(focusedWs(win)) },
       ],
     },
-    { role: 'windowMenu', label: 'Fenster' },
+    { role: 'windowMenu', label: 'Window' },
     {
       role: 'help',
-      label: 'Hilfe',
+      label: 'Help',
       submenu: [
         { label: 'CPN IDE Website', click: () => shell.openExternal('https://cpnide.org/') },
-        { label: 'CPN Tools Dokumentation', click: () => shell.openExternal('https://cpntools.org/category/documentation/') },
+        { label: 'CPN Tools Documentation', click: () => shell.openExternal('https://cpntools.org/category/documentation/') },
       ],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-  if (app.dock) app.dock.setMenu(Menu.buildFromTemplate([{ label: 'Neues Fenster', click: () => newWindow() }]));
+  if (app.dock) app.dock.setMenu(Menu.buildFromTemplate([{ label: 'New Window', click: () => newWindow() }]));
 }
 
 async function openInNewWindow(_item, win) {

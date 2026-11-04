@@ -9,12 +9,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-command -v innoextract >/dev/null || { echo "fetch-ui: innoextract fehlt (brew install innoextract)" >&2; exit 1; }
-echo "fetch-ui: lade $URL"
+command -v innoextract >/dev/null || { echo "fetch-ui: innoextract is missing (brew install innoextract)" >&2; exit 1; }
+echo "fetch-ui: downloading $URL"
 curl -fsSL --retry 5 -C - -o "$WORK/setup.exe" "$URL"
-echo "$SHA256  $WORK/setup.exe" | shasum -a 256 -c --status || { echo "fetch-ui: SHA-256 stimmt nicht" >&2; exit 1; }
+echo "$SHA256  $WORK/setup.exe" | shasum -a 256 -c --status || { echo "fetch-ui: SHA-256 mismatch" >&2; exit 1; }
 innoextract --silent -d "$WORK/x" "$WORK/setup.exe"
 npx --yes @electron/asar@3.2.18 extract "$WORK/x/app/resources/app.asar" "$WORK/asar"
 rm -rf "$ROOT/ui"
 cp -R "$WORK/asar/dist/cpn-ide" "$ROOT/ui"
-echo "fetch-ui: fertig -> $ROOT/ui"
+echo "fetch-ui: done -> $ROOT/ui"

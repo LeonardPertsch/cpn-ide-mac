@@ -14,4 +14,4 @@ npx electron-packager . "CPN IDE" \
   --ignore='^/(build|scripts|dist|node_modules)($|/)' --ignore='^/README\.md$'
 # Ad-hoc signature so macOS runs it on this machine.
 codesign --force --deep --sign - "dist/CPN IDE-darwin-arm64/CPN IDE.app"
-echo "fertig: dist/CPN IDE-darwin-arm64/CPN IDE.app"
+echo "done: dist/CPN IDE-darwin-arm64/CPN IDE.app"

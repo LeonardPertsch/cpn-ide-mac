@@ -1,5 +1,5 @@
 node_modules/
 dist/
-# Offizielle CPN-IDE-Oberfläche: wird mit `npm run fetch-ui` geladen und gepatcht
+# Official CPN IDE UI: downloaded and patched by `npm run fetch-ui`
 ui/
 .DS_Store

@@ -16,15 +16,15 @@ const path = require('path');
 const MARKER = '/*cpn-mac:smooth-tokens*/';
 const uiDir = path.join(__dirname, '..', 'ui');
 const bundle = fs.readdirSync(uiDir).find((f) => /^main\.[0-9a-f]+\.js$/.test(f));
-if (!bundle) { console.error('patch-ui: ui/main.*.js nicht gefunden (erst npm run fetch-ui)'); process.exit(1); }
+if (!bundle) { console.error('patch-ui: ui/main.*.js not found (run npm run fetch-ui first)'); process.exit(1); }
 const file = path.join(uiDir, bundle);
 let src = fs.readFileSync(file, 'utf8');
 
-if (src.includes(MARKER)) { console.log('patch-ui: bereits gepatcht'); process.exit(0); }
+if (src.includes(MARKER)) { console.log('patch-ui: already patched'); process.exit(0); }
 
 const drawRe = /(\w+)\.prototype\.drawArcAnimation=function\(e,t=500,n=!1\)\{[\s\S]*?\}\)\)\},(?=\1\.prototype\.createPathFromConnection=)/;
 const m = src.match(drawRe);
-if (!m) { console.error('patch-ui: drawArcAnimation nicht gefunden – andere UI-Version?'); process.exit(1); }
+if (!m) { console.error('patch-ui: drawArcAnimation not found (different UI version?)'); process.exit(1); }
 const R = m[1];
 
 const drawArcAnimation = `${R}.prototype.drawArcAnimation=function(e,t=500,n=!1){${MARKER}
@@ -70,13 +70,13 @@ src = src.replace(drawRe, drawArcAnimation);
 // Single-step mode: 500 ms per firing (250 ms per arc phase) plus the removed pauses felt jumpy.
 // 900 ms gives 450 ms per phase. Multi-step keeps its configured delay.
 const delayOld = 'default:return 500}},e.prototype.runMultiStep=';
-if (!src.includes(delayOld)) { console.error('patch-ui: getAnimationDelay nicht gefunden'); process.exit(1); }
+if (!src.includes(delayOld)) { console.error('patch-ui: getAnimationDelay not found'); process.exit(1); }
 src = src.replace(delayOld, 'default:return 900}},e.prototype.runMultiStep=');
 
 // Page switch from the project tree: the editor panel opened the page only after a fixed 1 s timeout.
 const tabOld = 'this.eventService.on(yG.PAGE_TAB_OPEN,(function(t){return setTimeout((function(){return e.openModelEditor(t.pageObject).then()}),1e3)}))';
-if (!src.includes(tabOld)) { console.error('patch-ui: PAGE_TAB_OPEN-Handler nicht gefunden'); process.exit(1); }
+if (!src.includes(tabOld)) { console.error('patch-ui: PAGE_TAB_OPEN handler not found'); process.exit(1); }
 src = src.replace(tabOld, tabOld.replace('}),1e3)', '}),0)'));
 
 fs.writeFileSync(file, src);
-console.log(`patch-ui: ${bundle} gepatcht (Token-Animation, Seitenwechsel)`);
+console.log(`patch-ui: ${bundle} patched (token animation, page switching)`);

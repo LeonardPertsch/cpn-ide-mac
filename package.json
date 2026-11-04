@@ -1,0 +1,19 @@
+{
+  "name": "cpn-ide-mac",
+  "productName": "CPN IDE",
+  "version": "1.0.0",
+  "description": "Standalone CPN IDE for macOS (Apple Silicon): the official CPN IDE editor with the CPN simulator backend in Docker.",
+  "main": "src/main.js",
+  "license": "AGPL-3.0",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "fetch-ui": "bash scripts/fetch-ui.sh && node scripts/patch-ui.js",
+    "package": "bash scripts/package.sh",
+    "patch-ui": "node scripts/patch-ui.js"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^45.1.0"
+  }
+}

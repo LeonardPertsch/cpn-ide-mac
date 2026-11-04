@@ -1,0 +1,5 @@
+node_modules/
+dist/
+# Offizielle CPN-IDE-Oberfläche: wird mit `npm run fetch-ui` geladen und gepatcht
+ui/
+.DS_Store

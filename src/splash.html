@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>CPN IDE</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <style>
+    :root { --bg: #f6f7f9; --fg: #1f2933; --muted: #66727f; --accent: #2b6cb0; --err: #b42318; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #1b1d21; --fg: #e6e8eb; --muted: #9aa4af; --accent: #63a4ff; --err: #ff7b72; } }
+    html, body { height: 100%; margin: 0; }
+    body { background: var(--bg); color: var(--fg); font: 14px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+      display: flex; align-items: center; justify-content: center; -webkit-user-select: none; }
+    .box { width: 440px; text-align: center; }
+    svg.logo { width: 112px; height: 72px; margin-bottom: 18px; }
+    h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin-bottom: 28px; }
+    .spinner { width: 22px; height: 22px; border: 2.5px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-top-color: var(--accent); border-radius: 50%; margin: 0 auto 14px; animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #status { color: var(--muted); min-height: 2.6em; word-break: break-word; }
+    #error { display: none; color: var(--err); white-space: pre-wrap; text-align: left; margin: 0 0 16px; line-height: 1.45; }
+    .buttons { display: none; gap: 8px; justify-content: center; }
+    button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent);
+      background: color-mix(in srgb, var(--fg) 6%, var(--bg)); color: var(--fg); cursor: pointer; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .failed .spinner { display: none; }
+    .failed #error, .failed .buttons { display: flex; }
+    .failed #error { display: block; }
+  </style>
+</head>
+<body>
+  <div class="box" id="box">
+    <svg class="logo" viewBox="0 0 112 72" aria-hidden="true">
+      <circle cx="18" cy="36" r="15" fill="none" stroke="currentColor" stroke-width="3"/>
+      <circle cx="18" cy="36" r="4" fill="#2f9e44"/>
+      <rect x="46" y="20" width="20" height="32" rx="2" fill="none" stroke="currentColor" stroke-width="3"/>
+      <circle cx="94" cy="36" r="15" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M34 36h9M69 36h9" stroke="currentColor" stroke-width="3"/>
+      <path d="M41 31l5 5-5 5zM76 31l5 5-5 5z" fill="currentColor"/>
+    </svg>
+    <h1>CPN IDE</h1>
+    <div class="sub">Coloured Petri Nets – Editor &amp; Simulator</div>
+    <div class="spinner"></div>
+    <div id="status">Wird gestartet …</div>
+    <div id="error"></div>
+    <div class="buttons">
+      <button id="install" style="display:none">Docker Desktop herunterladen</button>
+      <button id="log">Log anzeigen</button>
+      <button id="retry" class="primary">Erneut versuchen</button>
+    </div>
+  </div>
+  <script>
+    const box = document.getElementById('box');
+    const statusEl = document.getElementById('status');
+    const errorEl = document.getElementById('error');
+    const install = document.getElementById('install');
+    window.cpnSplash.onStatus(({ text }) => { box.classList.remove('failed'); statusEl.textContent = text; });
+    window.cpnSplash.onError(({ text, action }) => {
+      box.classList.add('failed');
+      statusEl.textContent = '';
+      errorEl.textContent = text;
+      install.style.display = action === 'install-docker' ? '' : 'none';
+    });
+    document.getElementById('retry').onclick = () => { box.classList.remove('failed'); statusEl.textContent = 'Erneuter Versuch …'; window.cpnSplash.retry(); };
+    document.getElementById('log').onclick = () => window.cpnSplash.showLog();
+    install.onclick = () => window.cpnSplash.installDocker();
+  </script>
+</body>
+</html>
